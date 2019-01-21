@@ -14,6 +14,11 @@
 
 package com.liferay.commerce.initializer.util;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.MappingJsonFactory;
+
 import com.liferay.asset.kernel.model.AssetCategory;
 import com.liferay.commerce.constants.CPDefinitionInventoryConstants;
 import com.liferay.commerce.initializer.util.internal.CPAttachmentFileEntryCreator;
@@ -46,7 +51,6 @@ import com.liferay.commerce.service.CPDefinitionInventoryLocalService;
 import com.liferay.commerce.service.CommerceAvailabilityEstimateLocalService;
 import com.liferay.commerce.service.CommerceWarehouseItemLocalService;
 import com.liferay.commerce.util.comparator.CommerceAvailabilityEstimatePriorityComparator;
-import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONArray;
@@ -61,6 +65,7 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import java.io.File;
 import java.io.Serializable;
 
 import java.math.BigDecimal;
@@ -82,6 +87,49 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = CPDefinitionsImporter.class)
 public class CPDefinitionsImporter {
+
+	public void importCPDefinitions(
+			File cpDefinitionsFile, String assetVocabularyName,
+			long[] commerceWarehouseIds, ClassLoader classLoader,
+			String imageDependenciesPath, ServiceContext serviceContext)
+		throws Exception {
+
+		MappingJsonFactory mappingJsonFactory = new MappingJsonFactory();
+
+		JsonParser jsonFactoryParser = mappingJsonFactory.createParser(
+			cpDefinitionsFile);
+
+		JsonToken jsonToken = jsonFactoryParser.nextToken();
+
+		if (jsonToken != JsonToken.START_ARRAY) {
+			throw new Exception("JSON Array Expected");
+		}
+
+		int importCount = 0;
+
+		while (jsonFactoryParser.nextToken() != JsonToken.END_ARRAY) {
+			TreeNode treeNode = jsonFactoryParser.readValueAsTree();
+
+			JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
+				treeNode.toString());
+
+			if (_log.isDebugEnabled()) {
+				_log.debug(jsonObject);
+			}
+
+			_importCPDefinition(
+				jsonObject, assetVocabularyName, commerceWarehouseIds,
+				classLoader, imageDependenciesPath, serviceContext);
+
+			importCount += 1;
+		}
+
+		if (_log.isInfoEnabled()) {
+			_log.info("Products import count: " + importCount);
+		}
+
+		jsonFactoryParser.close();
+	}
 
 	public List<CPDefinition> importCPDefinitions(
 			JSONArray jsonArray, String assetVocabularyName,
@@ -106,8 +154,9 @@ public class CPDefinitionsImporter {
 
 	private CPDefinition _addCPDefinition(
 			String name, String shortDescription, String description,
-			String sku, String taxCategory, long width, long height, long depth,
-			long weight, long[] assetCategoryIds, ServiceContext serviceContext)
+			String externalReferenceCode, String sku, String taxCategory,
+			long width, long height, long depth, long weight,
+			long[] assetCategoryIds, ServiceContext serviceContext)
 		throws PortalException {
 
 		serviceContext.setAssetCategoryIds(assetCategoryIds);
@@ -160,7 +209,7 @@ public class CPDefinitionsImporter {
 			displayDateYear, displayDateHour, displayDateMinute,
 			expirationDateMonth, expirationDateDay, expirationDateYear,
 			expirationDateHour, expirationDateMinute, true, sku,
-			StringPool.BLANK, serviceContext);
+			externalReferenceCode, serviceContext);
 	}
 
 	private void _addWarehouseQuantities(
@@ -235,6 +284,8 @@ public class CPDefinitionsImporter {
 		String name = jsonObject.getString("Name");
 		String shortDescription = jsonObject.getString("ShortDescription");
 		String description = jsonObject.getString("Description");
+		String externalReferenceCode = jsonObject.getString(
+			"ExternalReferenceCode");
 		String sku = jsonObject.getString("Sku");
 		String taxCategory = jsonObject.getString("TaxCategory");
 
@@ -251,8 +302,9 @@ public class CPDefinitionsImporter {
 		serviceContext.setWorkflowAction(WorkflowConstants.STATUS_DRAFT);
 
 		CPDefinition cpDefinition = _addCPDefinition(
-			name, shortDescription, description, sku, taxCategory, width,
-			height, length, weight, assetCategoryIds, serviceContext);
+			name, shortDescription, description, externalReferenceCode, sku,
+			taxCategory, width, height, length, weight, assetCategoryIds,
+			serviceContext);
 
 		serviceContext.setWorkflowAction(originalWorkflowAction);
 
