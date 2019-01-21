@@ -20,6 +20,8 @@ import com.liferay.document.library.kernel.exception.NoSuchFileEntryException;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppService;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.ClassedModel;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -28,9 +30,14 @@ import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.MimeTypes;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
+
+import java.net.URI;
+import java.net.URLEncoder;
 
 import java.util.Calendar;
 import java.util.Collections;
@@ -58,10 +65,32 @@ public class CPAttachmentFileEntryCreator {
 		Map<Locale, String> titleMap = Collections.singletonMap(
 			serviceContext.getLocale(), fileName);
 
-		InputStream inputStream = classLoader.getResourceAsStream(
-			dependenciesPath + fileName);
+		InputStream inputStream = null;
+
+		String uriString =
+			dependenciesPath + URLEncoder.encode(fileName, "UTF-8");
+
+		URI uri = new URI(uriString);
+
+		String scheme = uri.getScheme();
+
+		if (StringUtil.equalsIgnoreCase(scheme, "file")) {
+			File file = new File(uri.getPath());
+
+			if (file.exists()) {
+				inputStream = new FileInputStream(file);
+			}
+		}
+		else {
+			inputStream = classLoader.getResourceAsStream(
+				dependenciesPath + fileName);
+		}
 
 		if (inputStream == null) {
+			if (_log.isWarnEnabled()) {
+				_log.warn("resource not found: " + uri.toString());
+			}
+
 			return null;
 		}
 
@@ -127,6 +156,9 @@ public class CPAttachmentFileEntryCreator {
 			expirationDateHour, expirationDateMinute, true, titleMap, null,
 			priority, type, serviceContext);
 	}
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		CPAttachmentFileEntryCreator.class);
 
 	@Reference
 	private CPAttachmentFileEntryLocalService
