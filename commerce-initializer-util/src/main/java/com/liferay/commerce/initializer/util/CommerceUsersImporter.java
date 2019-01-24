@@ -20,7 +20,6 @@ import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.MappingJsonFactory;
 
 import com.liferay.commerce.account.service.CommerceAccountLocalService;
-import com.liferay.commerce.user.service.CommerceUserLocalService;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -194,8 +193,6 @@ public class CommerceUsersImporter {
 				externalUserId);
 		}
 
-		_commerceUserLocalService.updateActive(user.getUserId(), true);
-
 		_commerceAccountLocalService.addPersonalCommerceAccount(
 			user.getUserId(), StringPool.BLANK, StringPool.BLANK,
 			serviceContext);
@@ -206,9 +203,6 @@ public class CommerceUsersImporter {
 
 	@Reference
 	private CommerceAccountLocalService _commerceAccountLocalService;
-
-	@Reference
-	private CommerceUserLocalService _commerceUserLocalService;
 
 	@Reference
 	private UserIdMapperLocalService _userIdMapperLocalService;
