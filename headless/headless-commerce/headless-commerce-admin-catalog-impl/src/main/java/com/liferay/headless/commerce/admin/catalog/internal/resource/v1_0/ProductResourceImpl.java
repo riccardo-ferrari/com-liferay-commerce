@@ -419,7 +419,7 @@ public class ProductResourceImpl
 
 		// Images
 
-		Attachment[] images = product.getImages();
+		Attachment[] images = product.getAttachments();
 
 		if (images != null) {
 			for (Attachment image : images) {
@@ -472,7 +472,7 @@ public class ProductResourceImpl
 
 		// Product options
 
-		ProductOption[] productOptions = product.getOptions();
+		ProductOption[] productOptions = product.getProductOptions();
 
 		if (productOptions != null) {
 			for (ProductOption productOption : productOptions) {
@@ -483,7 +483,7 @@ public class ProductResourceImpl
 						serviceContext);
 
 				ProductOptionValue[] productOptionValues =
-					productOption.getValues();
+					productOption.getProductOptionValues();
 
 				if (productOptionValues != null) {
 					for (ProductOptionValue productOptionValue :
