@@ -2,18 +2,25 @@ package com.liferay.commerce.machine.learning.internal.messaging;
 
 import com.liferay.batch.engine.BatchEngineTaskExecuteStatus;
 import com.liferay.batch.engine.model.BatchEngineExportTask;
+import com.liferay.commerce.data.integration.model.CommerceDataIntegrationProcess;
 import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProcessLocalService;
 import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProcessLogLocalService;
+import com.liferay.portal.kernel.backgroundtask.BackgroundTaskConstants;
 import com.liferay.portal.kernel.exception.ModelListenerException;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
+import com.liferay.portal.kernel.util.GetterUtil;
 
 import java.io.Serializable;
+
+import java.util.Date;
 import java.util.Map;
+
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Riccardo Ferrari
@@ -26,17 +33,80 @@ public class BatchEngineExportTaskMessageListener
 	public void onAfterUpdate(BatchEngineExportTask batchEngineExportTask)
 		throws ModelListenerException {
 
-		String className = batchEngineExportTask.getClassName();
+		BatchEngineTaskExecuteStatus batchEngineTaskExecuteStatus =
+			BatchEngineTaskExecuteStatus.valueOf(
+				batchEngineExportTask.getExecuteStatus());
 
-		String executeStatus = batchEngineExportTask.getExecuteStatus();
+		if (batchEngineTaskExecuteStatus.equals(
+				BatchEngineTaskExecuteStatus.INITIAL) ||
+			batchEngineTaskExecuteStatus.equals(
+				BatchEngineTaskExecuteStatus.STARTED)) {
+
+			return;
+		}
 
 		Map<String, Serializable> parameters =
 			batchEngineExportTask.getParameters();
 
-		_log.info(String.format("Export task for %s, completed with status %s", className, executeStatus));
+		long commerceDataIntegrationProcessId = GetterUtil.getLong(
+			parameters.get("commerceDataIntegrationProcessId"));
+
+		if (commerceDataIntegrationProcessId == 0) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(
+					"Batch export task does not have a " +
+						"commerceDataIntegrationId, skipping");
+			}
+
+			return;
+		}
+
+		CommerceDataIntegrationProcess commerceDataIntegrationProcess =
+			_commerceDataIntegrationProcessLocalService.
+				fetchCommerceDataIntegrationProcess(
+					commerceDataIntegrationProcessId);
+
+		if (commerceDataIntegrationProcess == null) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Can not find Commerce Data Integration Process Id: " +
+						commerceDataIntegrationProcessId);
+			}
+
+			return;
+		}
+
+		long commerceDataIntegrationProcessLogId = GetterUtil.getLong(
+			parameters.get("commerceDataIntegrationProcessLogId"));
+
+		try {
+			if (batchEngineTaskExecuteStatus.equals(
+					BatchEngineTaskExecuteStatus.COMPLETED)) {
+
+				if (_log.isDebugEnabled()) {
+					_log.debug("Batch Export process completed, uploading");
+				}
+
+				//uploadExport();
+
+				_commerceDataIntegrationProcessLogLocalService.
+					updateCommerceDataIntegrationProcessLog(
+						commerceDataIntegrationProcessLogId, null, null,
+						BackgroundTaskConstants.STATUS_SUCCESSFUL, new Date());
+			}
+			else {
+				_commerceDataIntegrationProcessLogLocalService.
+					updateCommerceDataIntegrationProcessLog(
+						commerceDataIntegrationProcessLogId, null, null,
+						BackgroundTaskConstants.STATUS_FAILED, new Date());
+			}
+		}
+		catch (PortalException pe) {
+			_log.error(pe, pe);
+		}
 	}
 
-	private static Log _log = LogFactoryUtil.getLog(
+	private static final Log _log = LogFactoryUtil.getLog(
 		BatchEngineExportTaskMessageListener.class);
 
 	@Reference
@@ -46,4 +116,5 @@ public class BatchEngineExportTaskMessageListener
 	@Reference
 	private CommerceDataIntegrationProcessLogLocalService
 		_commerceDataIntegrationProcessLogLocalService;
+
 }

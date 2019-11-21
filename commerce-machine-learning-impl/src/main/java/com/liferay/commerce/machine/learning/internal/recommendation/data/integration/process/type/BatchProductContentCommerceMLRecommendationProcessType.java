@@ -2,6 +2,7 @@ package com.liferay.commerce.machine.learning.internal.recommendation.data.integ
 
 import com.liferay.commerce.data.integration.process.type.ProcessType;
 import com.liferay.commerce.machine.learning.internal.data.integration.BaseCommerceMLProcessType;
+
 import org.osgi.service.component.annotations.Component;
 
 /**
@@ -25,4 +26,5 @@ public class BatchProductContentCommerceMLRecommendationProcessType
 	public String getKey() {
 		return KEY;
 	}
+
 }

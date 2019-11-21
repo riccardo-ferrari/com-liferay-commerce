@@ -11,22 +11,24 @@ import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProc
 import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProcessLogLocalService;
 import com.liferay.commerce.data.integration.service.ScheduledTaskExecutorService;
 import com.liferay.commerce.machine.learning.internal.recommendation.data.integration.process.type.BatchProductContentCommerceMLRecommendationProcessType;
-import com.liferay.commerce.machine.learning.internal.recommendation.data.integration.process.type.ProductContentCommerceMLRecommendationProcessType;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Product;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskConstants;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Reference;
 
 import java.io.IOException;
 import java.io.Serializable;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Riccardo Ferrari
@@ -37,8 +39,9 @@ import java.util.Map;
 	property = "data.integration.service.executor.key=" + BatchProductContentCommerceMLRecommendationProcessType.KEY,
 	service = ScheduledTaskExecutorService.class
 )
-public class BatchProductContentCommerceMLRecommendationScheduledTaskExecutorService
-	implements ScheduledTaskExecutorService {
+public class
+	BatchProductContentCommerceMLRecommendationScheduledTaskExecutorService
+		implements ScheduledTaskExecutorService {
 
 	@Override
 	public String getName() {
@@ -92,18 +95,20 @@ public class BatchProductContentCommerceMLRecommendationScheduledTaskExecutorSer
 		UnicodeProperties typeSettingsProperties =
 			commerceDataIntegrationProcess.getTypeSettingsProperties();
 
-		String batchExportTaskId =
-			typeSettingsProperties.getProperty("batch-export-task-id");
+		String batchExportTaskId = typeSettingsProperties.getProperty(
+			"batch-export-task-id");
 
 		if (batchExportTaskId != null) {
 			return _batchEngineExportTaskLocalService.getBatchEngineExportTask(
-				Long.parseLong(batchExportTaskId));
+				GetterUtil.getLong(batchExportTaskId));
 		}
 
 		Map<String, Serializable> parameters = new HashMap<>();
+
 		parameters.put(
 			"commerceDataIntegrationProcessId",
-			commerceDataIntegrationProcess.getCommerceDataIntegrationProcessId());
+			commerceDataIntegrationProcess.
+				getCommerceDataIntegrationProcessId());
 
 		BatchEngineExportTask batchEngineExportTask =
 			_batchEngineExportTaskLocalService.addBatchEngineExportTask(
@@ -129,7 +134,8 @@ public class BatchProductContentCommerceMLRecommendationScheduledTaskExecutorSer
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
-		BatchProductContentCommerceMLRecommendationScheduledTaskExecutorService.class);
+		BatchProductContentCommerceMLRecommendationScheduledTaskExecutorService.
+			class);
 
 	@Reference
 	private BatchEngineExportTaskExecutor _batchEngineExportTaskExecutor;
@@ -145,4 +151,5 @@ public class BatchProductContentCommerceMLRecommendationScheduledTaskExecutorSer
 	@Reference
 	private CommerceDataIntegrationProcessLogLocalService
 		_commerceDataIntegrationProcessLogLocalService;
+
 }
