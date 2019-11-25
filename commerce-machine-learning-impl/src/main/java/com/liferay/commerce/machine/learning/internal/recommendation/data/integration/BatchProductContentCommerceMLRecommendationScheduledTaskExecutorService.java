@@ -70,7 +70,9 @@ public class
 
 		try {
 			BatchEngineExportTask batchEngineExportTask =
-				_getBatchEngineExportTask(commerceDataIntegrationProcess);
+				_getBatchEngineExportTask(
+					commerceDataIntegrationProcess,
+					commerceDataIntegrationProcessLog);
 
 			_batchEngineExportTaskExecutor.execute(batchEngineExportTask);
 		}
@@ -89,14 +91,15 @@ public class
 	}
 
 	private BatchEngineExportTask _getBatchEngineExportTask(
-			CommerceDataIntegrationProcess commerceDataIntegrationProcess)
+			CommerceDataIntegrationProcess commerceDataIntegrationProcess,
+			CommerceDataIntegrationProcessLog commerceDataIntegrationProcessLog)
 		throws PortalException {
 
 		UnicodeProperties typeSettingsProperties =
 			commerceDataIntegrationProcess.getTypeSettingsProperties();
 
 		String batchExportTaskId = typeSettingsProperties.getProperty(
-			"batch-export-task-id");
+			"batchExportTaskId");
 
 		if (batchExportTaskId != null) {
 			return _batchEngineExportTaskLocalService.getBatchEngineExportTask(
@@ -110,6 +113,10 @@ public class
 			commerceDataIntegrationProcess.
 				getCommerceDataIntegrationProcessId());
 
+		parameters.put("commerceDataIntegrationProcessLogId",
+			commerceDataIntegrationProcessLog.
+				getCommerceDataIntegrationProcessLogId());
+
 		BatchEngineExportTask batchEngineExportTask =
 			_batchEngineExportTaskLocalService.addBatchEngineExportTask(
 				commerceDataIntegrationProcess.getCompanyId(),
@@ -120,7 +127,7 @@ public class
 				"v1.0");
 
 		typeSettingsProperties.put(
-			"batch-export-task-id",
+			"batchExportTaskId",
 			String.valueOf(batchEngineExportTask.getBatchEngineExportTaskId()));
 
 		commerceDataIntegrationProcess.setTypeSettingsProperties(
