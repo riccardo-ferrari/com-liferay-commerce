@@ -2,6 +2,7 @@ package com.liferay.commerce.machine.learning.internal.messaging;
 
 import com.liferay.batch.engine.BatchEngineTaskExecuteStatus;
 import com.liferay.batch.engine.model.BatchEngineExportTask;
+import com.liferay.batch.engine.service.BatchEngineExportTaskLocalService;
 import com.liferay.commerce.data.integration.model.CommerceDataIntegrationProcess;
 import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProcessLocalService;
 import com.liferay.commerce.data.integration.service.CommerceDataIntegrationProcessLogLocalService;
@@ -12,8 +13,11 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
+import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 
+import java.io.File;
+import java.io.InputStream;
 import java.io.Serializable;
 
 import java.util.Date;
@@ -87,7 +91,8 @@ public class BatchEngineExportTaskMessageListener
 					_log.debug("Batch Export process completed, uploading");
 				}
 
-				//uploadExport();
+				_uploadExport(
+					batchEngineExportTask, commerceDataIntegrationProcess);
 
 				_commerceDataIntegrationProcessLogLocalService.
 					updateCommerceDataIntegrationProcessLog(
@@ -101,13 +106,42 @@ public class BatchEngineExportTaskMessageListener
 						BackgroundTaskConstants.STATUS_FAILED, new Date());
 			}
 		}
-		catch (PortalException pe) {
-			_log.error(pe, pe);
+		catch (Exception e) {
+			_log.error(e, e);
+
+			try {
+				_commerceDataIntegrationProcessLogLocalService.
+					updateCommerceDataIntegrationProcessLog(
+						commerceDataIntegrationProcessLogId, null, null,
+						BackgroundTaskConstants.STATUS_FAILED, new Date());
+			} catch (PortalException pe) {
+				_log.error(pe, pe);
+			}
 		}
+	}
+
+	private void _uploadExport(
+			BatchEngineExportTask batchEngineExportTask, 
+			CommerceDataIntegrationProcess commerceDataIntegrationProcess) 
+		throws Exception{
+
+		InputStream inputStream =
+			_batchEngineExportTaskLocalService.openContentInputStream(
+				batchEngineExportTask.getBatchEngineExportTaskId());
+
+		File tempFile = FileUtil.createTempFile(inputStream);
+
+		_log.info("Writing export to: " + tempFile.getAbsolutePath());
+
+		inputStream.close();
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		BatchEngineExportTaskMessageListener.class);
+
+	@Reference
+	private BatchEngineExportTaskLocalService
+		_batchEngineExportTaskLocalService;
 
 	@Reference
 	private CommerceDataIntegrationProcessLocalService
