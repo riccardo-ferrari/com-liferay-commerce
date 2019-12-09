@@ -43,6 +43,8 @@ import com.liferay.portal.search.engine.adapter.search.CountSearchResponse;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchResponse;
 
+import java.lang.reflect.Method;
+
 import java.text.DateFormat;
 import java.text.ParseException;
 
@@ -366,7 +368,8 @@ public abstract class BaseCommerceMLForecastServiceImpl
 
 		searchSearchRequest.setStart(start);
 
-		searchSearchRequest.setSize(size);
+		//		searchSearchRequest.setSize(size);
+		_setSize(searchSearchRequest, size);
 
 		searchSearchRequest.setSorts(sorts);
 
@@ -436,6 +439,32 @@ public abstract class BaseCommerceMLForecastServiceImpl
 		}
 
 		return list;
+	}
+
+	private void _setSize(SearchSearchRequest searchSearchRequest, int size) {
+		Class<? extends SearchSearchRequest> searchSearchRequestClass =
+			searchSearchRequest.getClass();
+
+		Method setSize = null;
+
+		try {
+			setSize = searchSearchRequestClass.getMethod(
+				"setSize", Integer.TYPE);
+		}
+		catch (NoSuchMethodException e) {
+			try {
+				setSize = searchSearchRequestClass.getMethod(
+					"setSize", Integer.class);
+			}
+			catch (NoSuchMethodException e1) {
+			}
+		}
+
+		try {
+			setSize.invoke(searchSearchRequest, size);
+		}
+		catch (Exception e) {
+		}
 	}
 
 	private Date _toDate(LocalDateTime localDateTime) {

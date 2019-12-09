@@ -26,6 +26,8 @@ import com.liferay.portal.kernel.search.generic.BooleanQueryImpl;
 import com.liferay.portal.kernel.search.generic.TermQueryImpl;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchRequest;
 
+import java.lang.reflect.Method;
+
 import java.util.Collections;
 
 /**
@@ -42,7 +44,8 @@ public abstract class BaseProductCommerceMLRecommendationHelper
 
 		searchRequest.setIndexNames(new String[] {indexName});
 
-		searchRequest.setSize(_DEFAULT_FETCH_SIZE);
+		//		searchRequest.setSize(_DEFAULT_FETCH_SIZE);
+		_setSize(searchRequest, _DEFAULT_FETCH_SIZE);
 
 		TermQuery companyTermQuery = new TermQueryImpl(
 			Field.COMPANY_ID, String.valueOf(companyId));
@@ -66,6 +69,32 @@ public abstract class BaseProductCommerceMLRecommendationHelper
 		searchRequest.setStats(Collections.emptyMap());
 
 		return searchRequest;
+	}
+
+	private void _setSize(SearchSearchRequest searchSearchRequest, int size) {
+		Class<? extends SearchSearchRequest> searchSearchRequestClass =
+			searchSearchRequest.getClass();
+
+		Method setSize = null;
+
+		try {
+			setSize = searchSearchRequestClass.getMethod(
+				"setSize", Integer.TYPE);
+		}
+		catch (NoSuchMethodException e) {
+			try {
+				setSize = searchSearchRequestClass.getMethod(
+					"setSize", Integer.class);
+			}
+			catch (NoSuchMethodException e1) {
+			}
+		}
+
+		try {
+			setSize.invoke(searchSearchRequest, size);
+		}
+		catch (Exception e) {
+		}
 	}
 
 	private static final int _DEFAULT_FETCH_SIZE = 10;
